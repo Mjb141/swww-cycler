@@ -1,17 +1,16 @@
 use anyhow::{Context, Ok};
+use clap::Parser;
 use env_logger::Env;
 use glob::glob;
-use log::{debug, error, info};
-use rand::seq::SliceRandom;
-use rand::thread_rng;
-use std::path::{Path, PathBuf};
-use std::process::Command;
-use which::which;
-
-use clap::Parser;
-
 use hyprland::event_listener::EventListener;
 use hyprland::shared::WorkspaceType;
+use log::{debug, error, info};
+use rand::{seq::SliceRandom, thread_rng};
+use std::{
+    path::{Path, PathBuf},
+    process::Command,
+};
+use which::which;
 
 const SWWW_BINARY: &str = "swww";
 
@@ -39,12 +38,12 @@ fn main() {
 fn handle_workspace_change(data: WorkspaceType) {
     match data {
         WorkspaceType::Regular(reg_workspace_num) => {
-            info!(
+            debug!(
                 "Workspace change (Regular) to workspace {:?}",
                 reg_workspace_num
             );
             let background_path = get_random_background_image().unwrap();
-            info!("Background selected: {:?}", background_path);
+            debug!("Background selected: {:?}", background_path);
             change_background(background_path);
         }
         _ => {
@@ -75,10 +74,9 @@ fn get_random_background_image() -> anyhow::Result<PathBuf> {
 
 fn change_background(background_path: PathBuf) {
     let path_str = background_path.as_path().to_str().unwrap();
-    info!("{path_str}");
-    let output = Command::new("swww")
+    info!("Changing background to: {path_str}");
+    Command::new("swww")
         .args(["img", path_str])
         .output()
         .unwrap();
-    info!("{:?}", output.stdout);
 }
