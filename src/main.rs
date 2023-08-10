@@ -1,7 +1,7 @@
-use anyhow::Context;
+mod utils;
+
 use clap::Parser;
 use env_logger::Env;
-use glob::glob;
 use hyprland::event_listener::EventListener;
 use hyprland::shared::WorkspaceType;
 use log::{debug, error, warn};
@@ -9,8 +9,9 @@ use rand::{seq::SliceRandom, thread_rng};
 use std::{path::PathBuf, process::Command};
 use which::which;
 
+use crate::utils::{get_valid_image_paths_from_provided_dir, selected_file_is_valid_img};
+
 const SWWW_BINARY: &str = "swww";
-const ACCEPTED_FILE_EXTS: [&'static str; 3] = ["webp", "jpg", "jpeg"];
 
 #[derive(Parser, Debug)]
 pub struct Args {
@@ -18,24 +19,7 @@ pub struct Args {
     pub backgrounds_path: String,
 }
 
-pub fn selected_file_is_valid_img(selected_file: &PathBuf) -> bool {
-    let os_ext = match selected_file.extension() {
-        Some(os_ext) => os_ext,
-        None => return false,
-    };
-
-    let ext = match os_ext.to_str() {
-        Some(ext) => ext,
-        None => return false,
-    };
-
-    ACCEPTED_FILE_EXTS.contains(&ext)
-}
-
-pub fn handle_workspace_change(
-    data: WorkspaceType,
-    backgrounds_dir: &String,
-) -> anyhow::Result<()> {
+pub fn handle_workspace_change(data: WorkspaceType, valid_image_paths: &Vec<PathBuf>) {
     match data {
         WorkspaceType::Regular(reg_workspace_num) => {
             debug!(
@@ -43,18 +27,9 @@ pub fn handle_workspace_change(
                 reg_workspace_num
             );
 
-            let files_objects_in_provided_dir: glob::Paths =
-                glob(&format!("{}/*", backgrounds_dir))
-                    .context("PatternError, please provide a valid --backgrounds-path value")?;
-
-            let valid_file_objects_in_provided_dir: Vec<PathBuf> = files_objects_in_provided_dir
-                .filter_map(Result::ok)
-                .collect();
-
             let mut rng = thread_rng();
-
             let chosen_background = loop {
-                match valid_file_objects_in_provided_dir.choose(&mut rng) {
+                match valid_image_paths.choose(&mut rng) {
                     Some(selected_file) => {
                         debug!("Selected (PathBuf): {:?}", selected_file);
 
@@ -63,7 +38,6 @@ pub fn handle_workspace_change(
                                 "Selected file '{:?}' does not have an acceptable file extension.",
                                 selected_file
                             );
-                            warn!("Acceptable file extensions: {:?}", ACCEPTED_FILE_EXTS);
                             continue;
                         }
 
@@ -93,12 +67,9 @@ pub fn handle_workspace_change(
             {
                 error!("Failed to issue 'swww' command. Not changing background.")
             }
-
-            Ok(())
         }
         WorkspaceType::Special(_) => {
             debug!("Workspace change event (Special) ignored");
-            Ok(())
         }
     }
 }
@@ -113,6 +84,7 @@ fn main() {
     }
     debug!("'{SWWW_BINARY}' binary found on PATH");
 
+    // Parse args and check provided dir exists
     let args = Args::parse();
     let backgrounds_dir = PathBuf::from(&args.backgrounds_path);
     if !backgrounds_dir.exists() | !backgrounds_dir.is_dir() {
@@ -120,11 +92,30 @@ fn main() {
         return;
     };
 
+    let valid_image_file_paths_in_provided_dir = match get_valid_image_paths_from_provided_dir(
+        args.backgrounds_path,
+    ) {
+        Ok(vec_image_paths) => vec_image_paths,
+        // Err(e) => panic!("Error: {e}"),
+        Err(e) => match e {
+            utils::ParsingError::PatternError(_) => {
+                error!("Failed to extract Paths from provided directory. Please provide a valid directory path");
+                return;
+            }
+            utils::ParsingError::NoValidFilesError(e) => {
+                error!("{e}");
+                return;
+            }
+            utils::ParsingError::NoValidImageFilesError(_) => {
+                error!("{e}");
+                return;
+            }
+        },
+    };
+
     let mut event_listener = EventListener::new();
     event_listener.add_workspace_change_handler(move |data| {
-        if let Err(_) = handle_workspace_change(data, &args.backgrounds_path) {
-            error!("Failed to handle workspace change event.")
-        }
+        handle_workspace_change(data, &valid_image_file_paths_in_provided_dir);
     });
 
     match event_listener.start_listener() {
