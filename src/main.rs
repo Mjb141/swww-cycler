@@ -128,7 +128,9 @@ fn main() {
     });
 
     match event_listener.start_listener() {
-        Ok(_) => todo!(),
-        Err(_) => todo!(),
+        Ok(_) => debug!("Listener started"),
+        Err(_) => {
+            panic!("Failed to start listener")
+        }
     };
 }
