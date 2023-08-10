@@ -18,11 +18,6 @@ pub struct Args {
     pub backgrounds_path: String,
 }
 
-// debug!(
-//             "'{}' is not an accepted file type. Selecting a new file.",
-//             ext
-//         );
-
 pub fn selected_file_is_valid_img(selected_file: &PathBuf) -> bool {
     let os_ext = match selected_file.extension() {
         Some(os_ext) => os_ext,
@@ -78,7 +73,7 @@ pub fn handle_workspace_change(
                                 path
                             }
                             None => {
-                                warn!("Could not convert, selecting new file");
+                                warn!("Could not convert PathBuf to &str, selecting new file");
                                 continue;
                             }
                         };
@@ -122,6 +117,7 @@ fn main() {
     let backgrounds_dir = PathBuf::from(&args.backgrounds_path);
     if !backgrounds_dir.exists() | !backgrounds_dir.is_dir() {
         error!("Backgrounds directory {:?} not found", backgrounds_dir);
+        return;
     };
 
     let mut event_listener = EventListener::new();
