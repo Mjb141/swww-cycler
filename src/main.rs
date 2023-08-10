@@ -9,7 +9,7 @@ use rand::{seq::SliceRandom, thread_rng};
 use std::{path::PathBuf, process::Command};
 use which::which;
 
-use crate::utils::{get_valid_image_paths_from_provided_dir, selected_file_is_valid_img};
+use crate::utils::get_valid_image_paths_from_provided_dir;
 
 const SWWW_BINARY: &str = "swww";
 
@@ -32,14 +32,6 @@ pub fn handle_workspace_change(data: WorkspaceType, valid_image_paths: &Vec<Path
                 match valid_image_paths.choose(&mut rng) {
                     Some(selected_file) => {
                         debug!("Selected (PathBuf): {:?}", selected_file);
-
-                        if !selected_file_is_valid_img(selected_file) {
-                            warn!(
-                                "Selected file '{:?}' does not have an acceptable file extension.",
-                                selected_file
-                            );
-                            continue;
-                        }
 
                         let path = match selected_file.as_path().to_str() {
                             Some(path) => {
