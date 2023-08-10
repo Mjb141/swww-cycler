@@ -8,7 +8,6 @@ repository = "https://github.com/Mjb141/swww-cycler"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.72"
 chrono = "0.4.26"
 clap = { version = "4.3.19", features = ["derive"] }
 env_logger = "0.10.0"
@@ -16,6 +15,7 @@ glob = "0.3.1"
 hyprland = "0.3.9"
 log = "0.4.19"
 rand = "0.8.5"
+thiserror = "1.0.44"
 which = "4.4.0"
 
 # The profile that 'cargo dist' will build with
