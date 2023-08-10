@@ -4,7 +4,7 @@ use env_logger::Env;
 use glob::glob;
 use hyprland::event_listener::EventListener;
 use hyprland::shared::WorkspaceType;
-use log::{debug, error};
+use log::{debug, error, warn};
 use rand::{seq::SliceRandom, thread_rng};
 use std::{path::PathBuf, process::Command};
 use which::which;
@@ -16,6 +16,20 @@ const ACCEPTED_FILE_EXTS: [&'static str; 3] = ["webp", "jpg", "jpeg"];
 pub struct Args {
     #[arg(long)]
     pub backgrounds_path: String,
+}
+
+pub fn selected_file_is_valid_img(selected_file: &PathBuf) -> bool {
+    let os_ext = match selected_file.extension() {
+        Some(os_ext) => os_ext,
+        None => return false,
+    };
+
+    let ext = match os_ext.to_str() {
+        Some(ext) => ext,
+        None => return false,
+    };
+
+    ACCEPTED_FILE_EXTS.contains(&ext)
 }
 
 pub fn handle_workspace_change(
@@ -44,27 +58,12 @@ pub fn handle_workspace_change(
                     Some(selected_file) => {
                         debug!("Selected (PathBuf): {:?}", selected_file);
 
-                        let ext = match selected_file.extension() {
-                            Some(ext) => {
-                                match ext.to_str() {
-                                    Some(str_ext) => str_ext,
-                                    None => {
-                                        debug!("Couldn't convert extension to &str. Selecting a new file.");
-                                        continue;
-                                    }
-                                }
-                            }
-                            None => {
-                                debug!("No file extension detected. Selecting a new file.");
-                                continue;
-                            }
-                        };
-
-                        if !ACCEPTED_FILE_EXTS.contains(&ext) {
-                            debug!(
-                                "'{}' is not an accepted file type. Selecting a new file.",
-                                ext
+                        if !selected_file_is_valid_img(selected_file) {
+                            warn!(
+                                "Selected file '{:?}' does not have an acceptable file extension.",
+                                selected_file
                             );
+                            warn!("Acceptable file extensions: {:?}", ACCEPTED_FILE_EXTS);
                             continue;
                         }
 
@@ -74,7 +73,7 @@ pub fn handle_workspace_change(
                                 path
                             }
                             None => {
-                                error!("Could not convert, selecting new file");
+                                warn!("Could not convert PathBuf to &str, selecting new file");
                                 continue;
                             }
                         };
@@ -82,7 +81,7 @@ pub fn handle_workspace_change(
                         break path;
                     }
                     None => {
-                        error!("Couldn't select a file. Attempting to select another file");
+                        warn!("Couldn't select a file. Attempting to select another file");
                         continue;
                     }
                 };
@@ -118,6 +117,7 @@ fn main() {
     let backgrounds_dir = PathBuf::from(&args.backgrounds_path);
     if !backgrounds_dir.exists() | !backgrounds_dir.is_dir() {
         error!("Backgrounds directory {:?} not found", backgrounds_dir);
+        return;
     };
 
     let mut event_listener = EventListener::new();
