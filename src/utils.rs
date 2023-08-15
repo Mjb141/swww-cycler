@@ -1,5 +1,4 @@
 use glob::glob;
-use log::error;
 use std::path::PathBuf;
 
 const ACCEPTED_FILE_EXTS: [&'static str; 3] = ["webp", "jpg", "jpeg"];
