@@ -15,6 +15,7 @@ use crate::utils::{get_valid_image_paths_from_provided_dir, CyclerError};
 const SWWW_BINARY: &str = "swww";
 
 #[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
 pub struct Args {
     #[arg(long)]
     pub backgrounds_path: String,
