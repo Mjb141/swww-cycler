@@ -5,7 +5,6 @@ use clap::Parser;
 use env_logger::Env;
 use hyprland::event_listener::EventListener;
 use hyprland::shared::WorkspaceType;
-use log::{debug, error};
 use rand::{seq::SliceRandom, thread_rng};
 use std::{path::PathBuf, process::Command};
 use which::which;
@@ -21,39 +20,32 @@ pub struct Args {
     pub backgrounds_path: String,
 }
 
-pub fn handle_workspace_change(data: WorkspaceType, valid_image_paths: &Vec<PathBuf>) {
+pub fn handle_workspace_change(
+    data: WorkspaceType,
+    valid_image_paths: &Vec<PathBuf>,
+) -> anyhow::Result<()> {
     match data {
         WorkspaceType::Regular(_) => {
-            debug!(
-                "WorkspaceChange event (Regular) detected, attempting to change background image"
-            );
             let mut rng = thread_rng();
-            let chosen_file = match valid_image_paths.choose(&mut rng) {
-                Some(selected_file) => selected_file,
-                None => {
-                    error!("Couldn't select a file from array of valid images. Exiting");
-                    panic!()
-                }
-            };
+            let chosen_file = valid_image_paths
+                .choose(&mut rng)
+                .ok_or(CyclerError::CantChooseAnImage)
+                .context("Couldn't select a file from array of valid images. Exiting")?;
 
-            let path_of_chosen_file = match chosen_file.as_path().to_str() {
-                Some(path_of_image) => path_of_image,
-                None => {
-                    error!("Couldn't convert path of selected file. Exiting");
-                    panic!()
-                }
-            };
+            let path_of_chosen_file = chosen_file
+                .as_path()
+                .to_str()
+                .ok_or(CyclerError::CantConvertToStr)
+                .with_context(|| format!("Failed to convert {:?} to &str", chosen_file))?;
 
-            if let Err(_) = Command::new("swww")
+            Command::new("swww")
                 .args(["img", path_of_chosen_file])
                 .output()
-            {
-                error!("Failed to issue 'swww' command. Not changing background")
-            }
+                .context("Failed to issue 'swww' command")?;
+
+            Ok(())
         }
-        WorkspaceType::Special(_) => {
-            debug!("WorkspaceChange event (Special) ignored");
-        }
+        WorkspaceType::Special(_) => Ok(()),
     }
 }
 
@@ -75,7 +67,7 @@ fn main() -> anyhow::Result<()> {
 
     let mut event_listener = EventListener::new();
     event_listener.add_workspace_change_handler(move |data| {
-        handle_workspace_change(data, &image_file_paths);
+        handle_workspace_change(data, &image_file_paths).ok();
     });
 
     event_listener

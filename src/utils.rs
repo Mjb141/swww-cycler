@@ -12,6 +12,10 @@ pub enum CyclerError {
     NoValidImageFilesError,
     #[error("Directory not found")]
     DirectoryNotFound,
+    #[error("Can't choose an image")]
+    CantChooseAnImage,
+    #[error("Can't convert PathBuf to Str")]
+    CantConvertToStr,
 }
 
 pub fn get_valid_image_paths_from_provided_dir(
