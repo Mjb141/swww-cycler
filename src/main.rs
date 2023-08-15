@@ -1,6 +1,7 @@
+mod time;
 mod utils;
 
-use anyhow::Context;
+use anyhow::{Context, Ok};
 use clap::Parser;
 use hyprland::event_listener::EventListener;
 use hyprland::shared::WorkspaceType;
@@ -8,8 +9,8 @@ use rand::{seq::SliceRandom, thread_rng};
 use std::{path::PathBuf, process::Command};
 use which::which;
 
-use crate::utils::get_valid_image_paths_from_provided_dir;
-use crate::utils::CyclerError;
+use crate::time::should_change;
+use crate::utils::{get_valid_image_paths_from_provided_dir, CyclerError};
 
 const SWWW_BINARY: &str = "swww";
 
@@ -36,6 +37,10 @@ pub fn handle_workspace_change(
                 .to_str()
                 .ok_or(CyclerError::CantConvertToStr)
                 .with_context(|| format!("Failed to convert {:?} to &str", chosen_file))?;
+
+            if !should_change() {
+                return Ok(());
+            }
 
             Command::new("swww")
                 .args(["img", path_of_chosen_file])
