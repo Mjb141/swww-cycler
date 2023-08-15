@@ -13,17 +13,10 @@ I may add an AUR package in the future
 
 1) Add the following to your `.config/hypr/hyprland.conf`: 
 
-```exec = /usr/bin/swww-cycler --backgrounds-path <path/to/backgrounds/dir> &```
+```exec = swww-cycler --backgrounds-path path/to/backgrounds/dir &```
 
-**Notice the `&` at the end. You must include this to run the binary in the background.**
+* **Notice the `&` at the end. You must include this to run the binary in the background.**
+* In some cases you may need to include the full path to the binary
+  * E.g. `exec = /path/to/swww-cycler --backgrounds-path path/to/backgrounds/dir`
 
-
-2) You can test the application by running `swww-cycler --backgrounds-path <path/to/backgrounds/dir>` and changing workspaces. Your background will change (change animation is controlled by your `hyprland.conf`). `swww-cycler` will log basic info about the background image change.
-
-## Configuration
-
-`swww-cycler` provides a single configuration environment variable:
-
-* `SWWW_CYCLER_LOG_LEVEL` which should be set to one of `debug`, or `error`
-  * Defaults to `info`, which will prevent any log output.
-
+2) You can test the application by running `swww-cycler --backgrounds-path path/to/backgrounds/dir` (instead of adding it directly to your `hyprland.conf` file) and changing workspaces. Your background will change (change animation is controlled by your `hyprland.conf`).
