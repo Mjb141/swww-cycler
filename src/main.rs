@@ -1,5 +1,6 @@
 mod utils;
 
+use anyhow::Context;
 use clap::Parser;
 use env_logger::Env;
 use hyprland::event_listener::EventListener;
@@ -10,7 +11,7 @@ use std::{path::PathBuf, process::Command};
 use which::which;
 
 use crate::utils::get_valid_image_paths_from_provided_dir;
-use crate::utils::ParsingError;
+use crate::utils::CyclerError;
 
 const SWWW_BINARY: &str = "swww";
 
@@ -56,54 +57,30 @@ pub fn handle_workspace_change(data: WorkspaceType, valid_image_paths: &Vec<Path
     }
 }
 
-fn main() {
+fn main() -> anyhow::Result<()> {
     let env = Env::default().filter_or("SWWW_CYCLER_LOG_LEVEL", "info");
     env_logger::init_from_env(env);
 
-    if let Err(_) = which(SWWW_BINARY) {
-        error!("'{SWWW_BINARY}' binary not found on PATH");
-        return;
-    }
-    debug!("'{SWWW_BINARY}' binary found on PATH");
+    which(SWWW_BINARY).with_context(|| format!("'{}' binary not found on PATH", SWWW_BINARY))?;
 
     let args = Args::parse();
-    let backgrounds_dir = PathBuf::from(&args.backgrounds_path);
-    if !backgrounds_dir.exists() | !backgrounds_dir.is_dir() {
-        error!("Backgrounds directory {:?} not found", backgrounds_dir);
-        return;
-    };
+    PathBuf::from(&args.backgrounds_path)
+        .is_dir()
+        .then_some(true)
+        .ok_or(CyclerError::DirectoryNotFound)
+        .with_context(|| format!("Directory {} not found", &args.backgrounds_path))?;
 
-    let valid_image_file_paths_in_provided_dir = match get_valid_image_paths_from_provided_dir(
-        args.backgrounds_path,
-    ) {
-        Ok(vec_image_paths) => {
-            debug!(
-                "Number of valid images in provided directory: {}",
-                vec_image_paths.len()
-            );
-            vec_image_paths
-        }
-        Err(e) => match e {
-            ParsingError::PatternError(_) => {
-                error!("Failed to extract Paths from provided directory. Please provide a valid directory path");
-                return;
-            }
-            ParsingError::NoValidImageFilesError => {
-                error!("Didn't find any valid image files in provided directory. Please provide a valid directory path");
-                return;
-            }
-        },
-    };
+    let image_file_paths = get_valid_image_paths_from_provided_dir(&args.backgrounds_path)
+        .with_context(|| format!("No images found in {}", &args.backgrounds_path))?;
 
     let mut event_listener = EventListener::new();
     event_listener.add_workspace_change_handler(move |data| {
-        handle_workspace_change(data, &valid_image_file_paths_in_provided_dir);
+        handle_workspace_change(data, &image_file_paths);
     });
 
-    match event_listener.start_listener() {
-        Ok(_) => debug!("Listener started"),
-        Err(_) => {
-            panic!("Failed to start listener")
-        }
-    };
+    event_listener
+        .start_listener()
+        .context("Failed to start listener")?;
+
+    Ok(())
 }

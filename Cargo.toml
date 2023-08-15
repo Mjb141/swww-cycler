@@ -8,6 +8,7 @@ repository = "https://github.com/Mjb141/swww-cycler"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = "1.0.74"
 chrono = "0.4.26"
 clap = { version = "4.3.19", features = ["derive"] }
 env_logger = "0.10.0"
