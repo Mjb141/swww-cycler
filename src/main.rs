@@ -2,7 +2,6 @@ mod utils;
 
 use anyhow::Context;
 use clap::Parser;
-use env_logger::Env;
 use hyprland::event_listener::EventListener;
 use hyprland::shared::WorkspaceType;
 use rand::{seq::SliceRandom, thread_rng};
@@ -50,9 +49,6 @@ pub fn handle_workspace_change(
 }
 
 fn main() -> anyhow::Result<()> {
-    let env = Env::default().filter_or("SWWW_CYCLER_LOG_LEVEL", "info");
-    env_logger::init_from_env(env);
-
     which(SWWW_BINARY).with_context(|| format!("'{}' binary not found on PATH", SWWW_BINARY))?;
 
     let args = Args::parse();
