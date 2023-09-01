@@ -19,11 +19,14 @@ const SWWW_BINARY: &str = "swww";
 pub struct Args {
     #[arg(long)]
     pub backgrounds_path: String,
+    #[arg(long)]
+    pub minutes: Option<i32>,
 }
 
 pub fn handle_workspace_change(
     data: WorkspaceType,
     valid_image_paths: &Vec<PathBuf>,
+    minutes: &i32,
 ) -> anyhow::Result<()> {
     match data {
         WorkspaceType::Regular(_) => {
@@ -39,7 +42,7 @@ pub fn handle_workspace_change(
                 .ok_or(CyclerError::CantConvertToStr)
                 .with_context(|| format!("Failed to convert {:?} to &str", chosen_file))?;
 
-            if !should_change() {
+            if !should_change(&minutes) {
                 return Ok(());
             }
 
@@ -64,12 +67,14 @@ fn main() -> anyhow::Result<()> {
         .ok_or(CyclerError::DirectoryNotFound)
         .with_context(|| format!("Directory {} not found", &args.backgrounds_path))?;
 
+    let minutes_between_change = args.minutes.unwrap_or(5);
+
     let image_file_paths = get_valid_image_paths_from_provided_dir(&args.backgrounds_path)
         .with_context(|| format!("No images found in {}", &args.backgrounds_path))?;
 
     let mut event_listener = EventListener::new();
     event_listener.add_workspace_change_handler(move |data| {
-        handle_workspace_change(data, &image_file_paths).ok();
+        handle_workspace_change(data, &image_file_paths, &minutes_between_change).ok();
     });
 
     event_listener

@@ -11,7 +11,12 @@ I may add an AUR package in the future
 
 ## Running
 
-1) Add the following to your `.config/hypr/hyprland.conf`: 
+### Parameters
+
+* `--backgrounds-path` (Required): Path to a directory containing background images
+* `--minutes` (Optional, defaults to 5): Integer minimum number of minutes between background change
+
+1) Add (at least) the following to your `.config/hypr/hyprland.conf`: 
 
 ```exec = swww-cycler --backgrounds-path path/to/backgrounds/dir &```
 
@@ -19,4 +24,10 @@ I may add an AUR package in the future
 * In some cases you may need to include the full path to the binary
   * E.g. `exec = /path/to/swww-cycler --backgrounds-path path/to/backgrounds/dir`
 
-2) You can test the application by running `swww-cycler --backgrounds-path path/to/backgrounds/dir` (instead of adding it directly to your `hyprland.conf` file) and changing workspaces. Your background will change (change animation is controlled by your `hyprland.conf`).
+2) You may optionally add `--minutes N`:
+
+```exec = swww-cycler --backgrounds-path path/to/backgrounds/dir --minutes 10 &```
+
+* This will limit the background changes to at most once every `N` minutes, no matter how many workspace change events are emitted
+
+3) You can test the application by running `swww-cycler --backgrounds-path path/to/backgrounds/dir` (instead of adding it directly to your `hyprland.conf` file) and changing workspaces. Your background will change (change animation is controlled by your `hyprland.conf`).

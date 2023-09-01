@@ -2,7 +2,7 @@ use std::env;
 
 use chrono::{Timelike, Utc};
 
-pub fn should_change() -> bool {
+pub fn should_change(minutes_between_changes: &i32) -> bool {
     let current_min = Utc::now().minute() as i32;
     let minute_last_changed = get_minute_last_changed();
 
@@ -13,7 +13,7 @@ pub fn should_change() -> bool {
     };
 
     // Handles changes at most every 5 minutes
-    if calculated_minute_last_changed + 5 > current_min {
+    if calculated_minute_last_changed + minutes_between_changes > current_min {
         return false;
     }
 
