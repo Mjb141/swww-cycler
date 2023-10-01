@@ -10,7 +10,7 @@ use rand::{seq::SliceRandom, thread_rng};
 use std::{path::PathBuf, process::Command};
 use which::which;
 
-use crate::time::should_change;
+use crate::time::enough_time_between_changes;
 use crate::utils::{get_valid_image_paths_from_provided_dir, CyclerError};
 
 const SWWW_BINARY: &str = "swww";
@@ -43,7 +43,7 @@ pub fn handle_workspace_change(
                 .ok_or(CyclerError::CantConvertToStr)
                 .with_context(|| format!("Failed to convert {:?} to &str", chosen_file))?;
 
-            if !should_change(&minutes) {
+            if !enough_time_between_changes(&minutes) {
                 return Ok(());
             }
 
