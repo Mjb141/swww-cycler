@@ -2,7 +2,14 @@ use std::env;
 
 use chrono::{Timelike, Utc};
 
-pub fn should_change(minutes_between_changes: &i32) -> bool {
+pub fn enough_time_between_changes(minutes_between_changes: &i32) -> bool {
+    // If minutes_between_changes is 0 change on every workspace change
+    // We don't care about setting minute_last_changed here either
+    if *minutes_between_changes == 0 as i32 {
+        return true;
+    }
+
+    // If minutes_between_changes != 0 determine if a change should be issued
     let current_min = Utc::now().minute() as i32;
     let minute_last_changed = get_minute_last_changed();
 
@@ -12,7 +19,6 @@ pub fn should_change(minutes_between_changes: &i32) -> bool {
         minute_last_changed
     };
 
-    // Handles changes at most every 5 minutes
     if calculated_minute_last_changed + minutes_between_changes > current_min {
         return false;
     }
