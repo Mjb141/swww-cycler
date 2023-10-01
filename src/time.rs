@@ -6,6 +6,7 @@ pub fn enough_time_between_changes(minutes_between_changes: &i32) -> bool {
     // If minutes_between_changes is 0 change on every workspace change
     // We don't care about setting minute_last_changed here either
     if *minutes_between_changes == 0 as i32 {
+        println!("minutes = 0, returning true");
         return true;
     }
 

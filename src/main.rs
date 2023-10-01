@@ -1,3 +1,4 @@
+mod engine;
 mod time;
 mod utils;
 
@@ -6,13 +7,18 @@ use clap::Parser;
 use hyprland::event_listener::EventListener;
 use hyprland::shared::WorkspaceType;
 use rand::{seq::SliceRandom, thread_rng};
-use std::{path::PathBuf, process::Command};
+use std::path::PathBuf;
 use which::which;
 
+use crate::engine::{get_engine, Engine};
 use crate::time::enough_time_between_changes;
 use crate::utils::{get_valid_image_paths_from_provided_dir, CyclerError};
 
-const SWWW_BINARY: &str = "swww";
+#[derive(clap::ValueEnum, Clone, Debug)]
+pub enum Application {
+    Swww,
+    Hyprpaper,
+}
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -20,14 +26,24 @@ pub struct Args {
     #[arg(long)]
     pub backgrounds_path: String,
     #[arg(long)]
+    #[clap(value_enum, default_value_t=Application::Swww)]
+    pub binary: Application,
+    #[arg(long)]
     pub minutes: Option<i32>,
 }
 
 pub fn handle_workspace_change(
     data: WorkspaceType,
+    binary: &Box<dyn Engine>,
     valid_image_paths: &Vec<PathBuf>,
     minutes: &i32,
 ) -> anyhow::Result<()> {
+    if !enough_time_between_changes(&minutes) {
+        return Ok(());
+    }
+
+    println!("going into matching workspacetype");
+
     match data {
         WorkspaceType::Regular(_) => {
             let mut rng = thread_rng();
@@ -42,14 +58,11 @@ pub fn handle_workspace_change(
                 .ok_or(CyclerError::CantConvertToStr)
                 .with_context(|| format!("Failed to convert {:?} to &str", chosen_file))?;
 
-            if !enough_time_between_changes(&minutes) {
-                return Ok(());
-            }
+            println!("path of chosen file: {}", path_of_chosen_file);
 
-            Command::new("swww")
-                .args(["img", path_of_chosen_file])
-                .output()
-                .context("Failed to issue 'swww' command")?;
+            binary
+                .change(path_of_chosen_file)
+                .context("Failed to send")?;
 
             Ok(())
         }
@@ -58,9 +71,13 @@ pub fn handle_workspace_change(
 }
 
 fn main() -> anyhow::Result<()> {
-    which(SWWW_BINARY).with_context(|| format!("'{}' binary not found on PATH", SWWW_BINARY))?;
-
     let args = Args::parse();
+
+    let binary: Box<dyn Engine> = get_engine(args.binary);
+
+    which(binary.which())
+        .with_context(|| format!("'{}' binary not found on PATH", binary.which()))?;
+
     PathBuf::from(&args.backgrounds_path)
         .is_dir()
         .then_some(true)
@@ -74,7 +91,7 @@ fn main() -> anyhow::Result<()> {
 
     let mut event_listener = EventListener::new();
     event_listener.add_workspace_change_handler(move |data| {
-        handle_workspace_change(data, &image_file_paths, &minutes_between_change).ok();
+        handle_workspace_change(data, &binary, &image_file_paths, &minutes_between_change).ok();
     });
 
     event_listener
